@@ -90,10 +90,11 @@ void setup() {
  
 // Main loop: read LTM and pack to MAVLink
 void loop() {
+  
     // Read LTM input
-    ltm_read();
     ltm_check();
-
+    ltm_read();
+    
     // Send MAVLink heartbeat
     command_heartbeat(system_id, component_id, system_type, autopilot_type, system_mode, custom_mode, system_state);
     
@@ -134,11 +135,9 @@ void loop() {
 #define LIGHTTELEMETRY_GFRAME 0x47 //G GPS + Baro altitude data ( Lat, Lon, Speed, Alt, Sats, Sat fix)
 #define LIGHTTELEMETRY_AFRAME 0x41 //A Attitude data ( Roll,Pitch, Heading )
 #define LIGHTTELEMETRY_SFRAME 0x53 //S Sensors/Status data ( VBat, Consumed current, Rssi, Airspeed, Arm status, Failsafe status, Flight mode )
-// #define LIGHTTELEMETRY_OFRAME 0x4F  //O OSD additionals data ( home pos, home alt, ddirection to home )
 #define LIGHTTELEMETRY_GFRAMELENGTH 18
 #define LIGHTTELEMETRY_AFRAMELENGTH 10
 #define LIGHTTELEMETRY_SFRAMELENGTH 11
-// #define LIGHTTELEMETRY_OFRAMELENGTH 18
 
 static uint8_t LTMserialBuffer[LIGHTTELEMETRY_GFRAMELENGTH-4];
 static uint8_t LTMreceiverIndex;
@@ -149,8 +148,7 @@ static uint8_t LTMframelength;
 static uint8_t LTMpassed= 0 ;
 static uint8_t LTM_ok = 0;
 static uint8_t crlf_count = 0;
-static uint8_t lastLTMpacket = 0;
-void uploadFont();
+static uint32_t lastLTMpacket = 0;
 
 uint8_t ltmread_u8() {
     return LTMserialBuffer[LTMreadIndex++];
@@ -167,15 +165,6 @@ uint32_t ltmread_u32() {
     t |= (uint32_t)ltmread_u16()<<16;
     return t;
 }
-
-
-//    uint32_t currentTime, displayTime;
-//    // Display data once a second to not interfeere with data decoding
-//    currentTime = millis();
-//    if(currentTime > displayTime) {
-//    displayTime = currentTime + 1000;
-//    //  insert function here
-//    }
 
 
 void ltm_check() {
@@ -219,16 +208,6 @@ void ltm_check() {
         frametick = millis();
         LTMpassed = 1;
     }
-
-    //    if (LTMcmd==LIGHTTELEMETRY_OFRAME) {
-    //        osd_home_lat = (int32_t)ltmread_u32() / 10000000.0;
-    //        osd_home_lon = (int32_t)ltmread_u32() / 10000000.0;
-    //        osd_home_alt = (int32_t)(ltmread_u32()) / 100.0f; // altitude from cm to m.
-    //        osd_enabled  = ltmread_u8();
-    //        osd_got_home = ltmread_u8();
-    //        if (osd_enabled == 0) osd_clear = 1;
-    //        LTMpassed = 1;
-    //    }
 }
 
 void ltm_read() {
@@ -267,11 +246,6 @@ while (softSerial.available()) {
                 LTMframelength = LIGHTTELEMETRY_SFRAMELENGTH;
                 c_state = HEADER_MSGTYPE;
                 break;
-                    
-                //  case 'O':
-                //  LTMframelength = LIGHTTELEMETRY_OFRAMELENGTH;
-                //  c_state = HEADER_MSGTYPE;
-                //  break;
  
                 default:
                 c_state = IDLE;
@@ -428,7 +402,6 @@ void command_globalgps(int8_t system_id, int8_t component_id, int32_t upTime, fl
     int16_t velx = 0; //x speed
     int16_t vely = 0; //y speed
     int16_t velz = 0; //z speed
-
 
     // Initialize the required buffers
     mavlink_message_t msg;
