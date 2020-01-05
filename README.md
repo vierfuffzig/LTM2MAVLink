@@ -7,7 +7,7 @@ Tested on Arduino Pro Mini
 
 LTM telemetry input via AltSoftSerial on Pin D8, default 2400 baud
 
-MAVLink output via hardware serial, default 57600 baud
+MAVLink output via hardware serial, default 19200 baud
 
 adjust as required in config section
 
