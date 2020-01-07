@@ -36,9 +36,9 @@ uint8_t    system_id = 1;        // Leave at 0 unless you need a specific ID
 uint8_t    component_id = 1;     // Leave at 0 = all
 uint8_t    system_type = 1;      // 0 Generic, 1 Fixed wing, 2 Quadrotor, 3 Coax Helicopter, 4 Helicopter, 5 Ground installation, 6 GCS
 uint8_t    autopilot_type = 3;   // Leave at 0 for generic autopilot with all capabilities, 3 = ArduPilot
-uint8_t    system_mode = 128;    // Flight mode. 4 = auto mode, 8 = guided mode, 16 = stabilize mode, 64 = manual mode, 128 = ARMED
+uint8_t    base_mode = 129;    // Flight mode. 4 = auto mode, 8 = guided mode, 16 = stabilize mode, 64 = manual mode, 128 = ARMED, last bit = custom mode flag
 uint32_t   custom_mode = 0;      // Leave at 0 = not used          
-uint8_t    system_state = 4;     // 0 = unknown, 3 = standby, 4 = active
+uint8_t    system_state = 0;     // 0 = unknown, 3 = standby, 4 = active, 5 = critical
 uint32_t   upTime = 0;           // Leave at 0 if not required otherwise
 
 //    Flight parameters
@@ -56,9 +56,8 @@ uint16_t   voltage_battery = 0;    // [mV]
 uint16_t   current_battery = 0;    // [mA]
 // uint16_t   battery_consumed = 0;   // [mAh] not used
 uint8_t    rssi = 0;
-uint8_t    armed = 0;              // WIP
-uint8_t    failsafe = 0;           // WIP
-uint8_t    mode = 0;               // WIP
+uint8_t    armed = 0;
+uint8_t    failsafe = 0;
 unsigned long previousTime_1 = 0;
 unsigned long previousTime_2 = 0;
 
@@ -95,7 +94,7 @@ void loop() {
     if (currentTime - previousTime_2 >= 1000) {
 
         // Send heartbeat at 1 Hz
-        command_heartbeat(system_id, component_id, system_type, autopilot_type, system_mode, custom_mode, system_state);
+        command_heartbeat(system_id, component_id, system_type, autopilot_type, base_mode, custom_mode, system_state);
 
         // Reset 1 Hz timer
         previousTime_2 = currentTime;
@@ -182,8 +181,21 @@ void ltm_check() {
         uint8_t ltm_armfsmode = ltmread_u8();
         armed = (ltm_armfsmode & 0b00000001);
         failsafe = (ltm_armfsmode >> 1) & 0b00000001;
-        mode = (ltm_armfsmode >> 2) & 0b00111111;     
-        //   frametick = millis();
+        custom_mode = (ltm_armfsmode >> 2) & 0b00111111;     
+        if (custom_mode == 0 | 3 | 4) {
+            base_mode = 65;
+        } else if (custom_mode == 2 | 5 | 6 | 7 | 8) {
+            base_mode = 17;
+        } else if (10 <= custom_mode <= 15) {
+            base_mode = 25;
+        }
+        if (armed == 1) {
+            base_mode += 128;
+            system_state = 4;
+        } 
+        if (failsafe == 1) {
+            system_state = 5;
+        }
     }
 }
 
@@ -255,14 +267,14 @@ void ltm_read() {
 * @return void
 *************************************************************/
 
-void command_heartbeat(uint8_t system_id, uint8_t component_id, uint8_t system_type, uint8_t autopilot_type, uint8_t system_mode, uint32_t custom_mode, uint8_t system_state) {
+void command_heartbeat(uint8_t system_id, uint8_t component_id, uint8_t system_type, uint8_t autopilot_type, uint8_t base_mode, uint32_t custom_mode, uint8_t system_state) {
 
     // Initialize the required buffers
     mavlink_message_t msg;
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
  
     // Pack the message
-    mavlink_msg_heartbeat_pack(system_id, component_id, &msg, system_type, autopilot_type, system_mode, custom_mode, system_state);
+    mavlink_msg_heartbeat_pack(system_id, component_id, &msg, system_type, autopilot_type, base_mode, custom_mode, system_state);
  
     // Copy the message to the send buffer
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
