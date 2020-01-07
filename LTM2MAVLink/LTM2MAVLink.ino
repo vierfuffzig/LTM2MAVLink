@@ -32,7 +32,7 @@
 //    OUTPUT BAUDRATES > 38400 MIGHT CAUSE PERFORMANCE ISSUES
 
 //    MAVLink system parameters, see common.h for further detail
-uint8_t    system_id = 0;        // Leave at 0 unless you need a specific ID
+uint8_t    system_id = 1;        // Leave at 0 unless you need a specific ID
 uint8_t    component_id = 1;     // Leave at 0 = all
 uint8_t    system_type = 1;      // 0 Generic, 1 Fixed wing, 2 Quadrotor, 3 Coax Helicopter, 4 Helicopter, 5 Ground installation, 6 GCS
 uint8_t    autopilot_type = 3;   // Leave at 0 for generic autopilot with all capabilities, 3 = ArduPilot
@@ -60,6 +60,9 @@ uint8_t    armed = 0;              // not used in MAVLink downlink
 uint8_t    failsafe = 0;           // not used in MAVLink downlink
 uint8_t    mode = 0;               // not used in MAVLink downlink
 
+unsigned long previousTime_1 = 0;
+unsigned long previousTime_2 = 0;
+
 AltSoftSerial softSerial;
 
 void setup() {
@@ -71,24 +74,30 @@ void setup() {
  
 // Main loop: read LTM and pack to MAVLink
 void loop() {
-  
-    // Read LTM input
-    ltm_check();
-    ltm_read();
+    unsigned long currentTime = millis();
     
-    // Send MAVLink heartbeat
-    command_heartbeat(system_id, component_id, system_type, autopilot_type, system_mode, custom_mode, system_state);
-    
-    //Send battery status
-    command_status(system_id, component_id, voltage_battery, current_battery);
-    
-    // Send GPS and altitude data
-    command_gps(system_id, component_id, upTime, fixType, lat, lon, alt, heading, groundspeed, gps_sats);
-    
-    
-    // Send attitude data to artificial horizon
-    command_attitude(system_id, component_id, upTime, roll, pitch);
-}  
+    if (currentTime - previousTime_1 >= 200) {
+        
+        // Read LTM input
+        ltm_check();
+        ltm_read();
+
+        // Send 5 Hz messages
+        command_status(system_id, component_id, voltage_battery, current_battery);
+        command_gps(system_id, component_id, upTime, fixType, lat, lon, alt, heading, groundspeed, gps_sats);
+        command_attitude(system_id, component_id, upTime, roll, pitch);
+
+        // reset timer
+        previousTime_1 = currentTime;
+    }
+
+    if (currentTime - previousTime_2 >= 1000) {
+
+        // Send heartbeat at 1 Hz
+        command_heartbeat(system_id, component_id, system_type, autopilot_type, system_mode, custom_mode, system_state);
+        previousTime_2 = currentTime;
+    }
+}
 
 /* #################################################################################################################
  * LightTelemetry protocol (LTM)
