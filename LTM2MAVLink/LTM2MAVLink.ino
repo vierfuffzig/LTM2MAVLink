@@ -24,7 +24,7 @@
 
 //    CONFIGURE BAUDRATES
 
-#define baud_mavlink_out 19200
+#define baud_mavlink_out 57600
 #define baud_LTM_in      2400
 
 //    LTM INPUT FIXED TO PIN 8 (ALTSOFTSERIAL RX)
@@ -55,11 +55,10 @@ uint8_t    fixType = 0;            // 0-1: no fix, 2: 2D fix, 3: 3D fix
 uint16_t   voltage_battery = 0;    // [mV]
 uint16_t   current_battery = 0;    // [mA]
 // uint16_t   battery_consumed = 0;   // [mAh] not used
-uint8_t    rssi = 0;               // not used in MAVLink downlink
-uint8_t    armed = 0;              // not used in MAVLink downlink
-uint8_t    failsafe = 0;           // not used in MAVLink downlink
-uint8_t    mode = 0;               // not used in MAVLink downlink
-
+uint8_t    rssi = 0;
+uint8_t    armed = 0;              // WIP
+uint8_t    failsafe = 0;           // WIP
+uint8_t    mode = 0;               // WIP
 unsigned long previousTime_1 = 0;
 unsigned long previousTime_2 = 0;
 
@@ -78,16 +77,18 @@ void loop() {
     
     if (currentTime - previousTime_1 >= 200) {
         
-        // Read LTM input
+        // Read and convert LTM input
         ltm_check();
         ltm_read();
 
         // Send 5 Hz messages
         command_status(system_id, component_id, voltage_battery, current_battery);
         command_gps(system_id, component_id, upTime, fixType, lat, lon, alt, heading, groundspeed, gps_sats);
-        command_attitude(system_id, component_id, upTime, roll, pitch);
+        command_attitude(system_id, component_id, upTime, roll, pitch, heading);
+        command_vfr_hud(system_id, component_id, groundspeed, airspeed, heading, alt);
+        command_rc_channels_raw(system_id, component_id, upTime, rssi);
 
-        // reset timer
+        // reset 5 Hz timer
         previousTime_1 = currentTime;
     }
 
@@ -95,6 +96,8 @@ void loop() {
 
         // Send heartbeat at 1 Hz
         command_heartbeat(system_id, component_id, system_type, autopilot_type, system_mode, custom_mode, system_state);
+
+        // Reset 1 Hz timer
         previousTime_2 = currentTime;
     }
 }
@@ -321,19 +324,50 @@ void command_gps(uint8_t system_id, uint8_t component_id, uint32_t upTime,  uint
 * @return void
 *************************************************************/
        
-void command_attitude(uint8_t system_id, uint8_t component_id, int32_t upTime, int16_t roll, int16_t pitch) {
+void command_attitude(uint8_t system_id, uint8_t component_id, int32_t upTime, int16_t roll, int16_t pitch, int16_t heading) {
 
     //Radian -> degree conversion rate
     float radian = 57.2958;
     float rollrad = (float)roll / radian;
     float pitchrad = (float)pitch / radian;
+    float yawrad = (float)heading / radian;
 
     // Initialize the required buffers
     mavlink_message_t msg;
     uint8_t buf[MAVLINK_MAX_PACKET_LEN];
 
     // Pack the message
-    mavlink_msg_attitude_pack(system_id, component_id, &msg, upTime, rollrad, pitchrad, 0, 0, 0, 0); 
+    mavlink_msg_attitude_pack(system_id, component_id, &msg, upTime, rollrad, pitchrad, yawrad, 0, 0, 0); 
+
+    // Copy the message to the send buffer
+    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+    // Send the message (.write sends as bytes)
+    Serial.write(buf, len);
+}
+
+void command_vfr_hud(uint8_t system_id, uint8_t component_id, float groundspeed, float airspeed, int16_t heading, float alt) {
+  
+    // Initialize the required buffers
+    mavlink_message_t msg;
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+    // Pack the message
+    mavlink_msg_vfr_hud_pack(system_id, component_id, &msg, groundspeed, airspeed, heading, 0, alt, 0); 
+
+    // Copy the message to the send buffer
+    uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
+    // Send the message (.write sends as bytes)
+    Serial.write(buf, len);
+}
+
+void command_rc_channels_raw(uint8_t system_id, uint8_t component_id, int32_t upTime, uint8_t rssi) {
+  
+    // Initialize the required buffers
+    mavlink_message_t msg;
+    uint8_t buf[MAVLINK_MAX_PACKET_LEN];
+
+    // Pack the message
+    mavlink_msg_rc_channels_raw_pack(system_id, component_id, &msg, upTime, 0, 0, 0, 0, 0, 0, 0, 0, 0, rssi); 
 
     // Copy the message to the send buffer
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
