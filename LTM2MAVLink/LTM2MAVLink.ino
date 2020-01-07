@@ -32,12 +32,12 @@
 //    OUTPUT BAUDRATES > 38400 MIGHT CAUSE PERFORMANCE ISSUES
 
 //    MAVLink system parameters, see common.h for further detail
-uint8_t    system_id = 1;        // Leave at 0 unless you need a specific ID
-uint8_t    component_id = 1;     // Leave at 0 = all
+uint8_t    system_id = 1;        // Leave at 1 unless you need a specific ID
+uint8_t    component_id = 1;     // Leave at 1 unless specifically required
 uint8_t    system_type = 1;      // 0 Generic, 1 Fixed wing, 2 Quadrotor, 3 Coax Helicopter, 4 Helicopter, 5 Ground installation, 6 GCS
 uint8_t    autopilot_type = 3;   // Leave at 0 for generic autopilot with all capabilities, 3 = ArduPilot
-uint8_t    base_mode = 129;    // Flight mode. 4 = auto mode, 8 = guided mode, 16 = stabilize mode, 64 = manual mode, 128 = ARMED, last bit = custom mode flag
-uint32_t   custom_mode = 0;      // Leave at 0 = not used          
+uint8_t    base_mode = 1;        // 1 = custom mode enabled, 4 = auto mode, 8 = guided mode, 16 = stabilize mode, 64 = manual mode, 128 = safety armed
+uint32_t   custom_mode = 0;      // see mavlink dialect message enums. uses ardupilot plane custom mode set     
 uint8_t    system_state = 0;     // 0 = unknown, 3 = standby, 4 = active, 5 = critical
 uint32_t   upTime = 0;           // Leave at 0 if not required otherwise
 
@@ -54,10 +54,10 @@ uint8_t    gps_sats = 0;
 uint8_t    fixType = 0;            // 0-1: no fix, 2: 2D fix, 3: 3D fix
 uint16_t   voltage_battery = 0;    // [mV]
 uint16_t   current_battery = 0;    // [mA]
-// uint16_t   battery_consumed = 0;   // [mAh] not used
 uint8_t    rssi = 0;
 uint8_t    armed = 0;
 uint8_t    failsafe = 0;
+
 unsigned long previousTime_1 = 0;
 unsigned long previousTime_2 = 0;
 
@@ -357,6 +357,13 @@ void command_attitude(uint8_t system_id, uint8_t component_id, int32_t upTime, i
     Serial.write(buf, len);
 }
 
+
+/************************************************************
+* @brief Send vfr_hud
+* @param groundspeed, airspeed, heading, altitude MSL
+* @return void
+*************************************************************/
+
 void command_vfr_hud(uint8_t system_id, uint8_t component_id, float groundspeed, float airspeed, int16_t heading, float alt) {
   
     // Initialize the required buffers
@@ -371,6 +378,13 @@ void command_vfr_hud(uint8_t system_id, uint8_t component_id, float groundspeed,
     // Send the message (.write sends as bytes)
     Serial.write(buf, len);
 }
+
+
+/************************************************************
+* @brief Send rc_channels_raw
+* @param rssi
+* @return void
+*************************************************************/
 
 void command_rc_channels_raw(uint8_t system_id, uint8_t component_id, int32_t upTime, uint8_t rssi) {
   
