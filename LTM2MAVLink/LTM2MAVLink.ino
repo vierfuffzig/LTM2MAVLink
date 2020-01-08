@@ -182,9 +182,9 @@ void ltm_check() {
         armed = (ltm_armfsmode & 0b00000001);
         failsafe = (ltm_armfsmode >> 1) & 0b00000001;
         custom_mode = (ltm_armfsmode >> 2) & 0b00111111;     
-        if (custom_mode == 0 | 3 | 4) {
+        if ((custom_mode == 0) || (custom_mode == 3) || (custom_mode == 4)) {
             base_mode = 65;
-        } else if (custom_mode == 2 | 5 | 6 | 7 | 8) {
+        } else if ((custom_mode == 2) || (custom_mode == 5) || (custom_mode == 6) || (custom_mode == 7) || (custom_mode == 8)) {
             base_mode = 17;
         } else if (10 <= custom_mode <= 15) {
             base_mode = 25;
