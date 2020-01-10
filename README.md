@@ -3,15 +3,25 @@
 A non-coder's approach at a LTM to MAVLink converter. 
 Aimed at passing LTM downlink telemetry to MAVLink-compatible GCSes like MissionPlanner, QGroundCrontrol etc.
 
-Tested on Arduino Pro Mini
+Tested on Arduino Pro Mini and ESP8266
 
 LTM telemetry input via AltSoftSerial on Pin D8, default 2400 baud
 
-MAVLink output via hardware serial, default 19200 baud
+Arduino Pro Mini:
+-----------------
+MAVLink output via hardware serial, default 57600 baud
+
+ESP8266: 
+--------
+
+MAVLink via UDP boradcast, SSID = LTM2MAVLinkUDP, password = password
 
 adjust as required in config section
 
+
 Code from:
+----------
+
 S.Port to MAVLink Converter: https://github.com/davwys/arduino-sport-to-mavlink (c) 2019 David Wyss
 
 and
