@@ -14,7 +14,7 @@ MAVLink output via hardware serial, default 57600 baud
 ESP8266: 
 --------
 
-MAVLink via UDP boradcast, SSID = LTM2MAVLinkUDP, password = password
+MAVLink via UDP broadcast, SSID = LTM2MAVLinkUDP, password = password
 
 adjust as required in config section
 
