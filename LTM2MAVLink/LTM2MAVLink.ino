@@ -18,10 +18,26 @@
 // - NMEA & Ublox libraries from Jordi Muñoz and Jose Julio (DIYDrones.com)
 // THANKS TO ANDREW TRIDGELL AND ALL THE ARDUPILOT TEAM FOR ALL GUIDANCE, SUPPORT AND INSPIRATIOON
 
-
-//    Uncomment hardware target
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//    Uncomment desired hardware target
+////////////////////////////////////////
 #define ESP8266
 //#define ProMini
+////////////////////////////////////////
+//
+//    CONFIGURE BAUDRATES 
+//    (UDP on ESP8266 hardware)
+////////////////////////////////////////
+#define baud_LTM_in      1200
+
+#ifndef ESP8266
+
+    #define baud_mavlink_out 57600
+    
+#endif
+////////////////////////////////////////
+// end of config section
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #include <mavlink.h>
 
@@ -54,20 +70,6 @@
 
 #endif
 
-
-//    CONFIGURE BAUDRATES
-
-#define baud_LTM_in      1200
-
-#ifndef ESP8266
-
-    #define baud_mavlink_out 57600
-    
-#endif
-
-//    LTM INPUT FIXED TO PIN 8 (ALTSOFTSERIAL RX)
-//    MAVLINK OUTPUT ON TX (HARDWARE SERIAL)
-//    OUTPUT BAUDRATES > 38400 MIGHT CAUSE PERFORMANCE ISSUES
 
 //    MAVLink system parameters, see common.h for further detail
 uint8_t    system_id = 1;        // Leave at 1 unless you need a specific ID
