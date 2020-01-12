@@ -19,13 +19,51 @@
 // THANKS TO ANDREW TRIDGELL AND ALL THE ARDUPILOT TEAM FOR ALL GUIDANCE, SUPPORT AND INSPIRATIOON
 
 
+//    Uncomment hardware target
+#define ESP8266
+//#define ProMini
+
 #include <mavlink.h>
-#include <AltSoftSerial.h>
+
+#ifdef ESP8266
+
+    #include <ESP8266WiFi.h>
+    #include <WiFiUdp.h>
+    
+    //    CONFIGURE Wifi
+        
+    unsigned int localUdpPort   = 14555;
+    unsigned int remoteport     = 14550;
+    const char *ssid            = "LTM2MAVLinkUDP";
+    const char *password        = "password";         // set as required
+    
+    IPAddress AP_ip(192, 168, 4, 5);
+    IPAddress AP_gateway(192, 168, 4, 1);
+    IPAddress AP_subnet(255, 255, 255, 0);
+    IPAddress UDP_broadcast(192, 168, 4, 255);
+    
+    HardwareSerial & inPort = Serial;
+    WiFiUDP outPort;
+
+#else
+
+    #include <AltSoftSerial.h>
+    
+    AltSoftSerial inPort;  //   LTM input on RX pin 8, Tx on pin 9 not used
+    HardwareSerial & outPort = Serial;
+
+#endif
+
 
 //    CONFIGURE BAUDRATES
 
-#define baud_mavlink_out 57600
-#define baud_LTM_in      2400
+#define baud_LTM_in      1200
+
+#ifndef ESP8266
+
+    #define baud_mavlink_out 57600
+    
+#endif
 
 //    LTM INPUT FIXED TO PIN 8 (ALTSOFTSERIAL RX)
 //    MAVLINK OUTPUT ON TX (HARDWARE SERIAL)
@@ -61,13 +99,24 @@ uint8_t    failsafe = 0;
 unsigned long previousTime_1 = 0;
 unsigned long previousTime_2 = 0;
 
-AltSoftSerial softSerial;
 
+//    Setup
 void setup() {
-    Serial.begin(baud_mavlink_out);
-    //Serial.println("PUT HARDWARE SERIAL DEBUG MESSAGE HERE");
-    softSerial.begin(baud_LTM_in);
-    //softSerial.println("PUT SOFTWARE SERIAL DEBUG MESSAGE HERE");
+    #ifdef ESP8266
+    
+        delay(500);
+        inPort.begin(baud_LTM_in);
+        WiFi.encryptionType(AUTH_WPA2_PSK);
+        WiFi.softAPConfig(AP_ip, AP_gateway, AP_subnet);
+        WiFi.softAP(ssid, password, 11);
+        outPort.begin(localUdpPort);
+    
+    #else
+    
+        inPort.begin(baud_LTM_in);
+        outPort.begin(baud_mavlink_out);
+        
+    #endif
 }
  
 // Main loop: read LTM and pack to MAVLink
@@ -212,8 +261,8 @@ void ltm_read() {
 
     c_state = IDLE;
 
-    while (softSerial.available()) {
-        c = char(softSerial.read());
+    while (inPort.available()) {
+        c = char(inPort.read());
     
         if (c_state == IDLE) {
             c_state = (c=='$') ? HEADER_START1 : IDLE;
@@ -280,7 +329,17 @@ void command_heartbeat(uint8_t system_id, uint8_t component_id, uint8_t system_t
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
  
     // Send the message
-    Serial.write(buf, len);
+    #ifdef ESP8266
+    
+        outPort.beginPacket(UDP_broadcast, remoteport);
+        outPort.write(buf, len);
+        outPort.endPacket();
+
+    #else
+    
+        outPort.write(buf, len);
+
+    #endif
 }
 
 
@@ -303,7 +362,17 @@ void command_status(uint8_t system_id, uint8_t component_id, uint16_t voltage_ba
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
   
     // Send the message (.write sends as bytes)
-    Serial.write(buf, len);
+    #ifdef ESP8266
+    
+        outPort.beginPacket(UDP_broadcast, remoteport);
+        outPort.write(buf, len);
+        outPort.endPacket();
+
+    #else
+    
+        outPort.write(buf, len);
+
+    #endif
 }
 
 
@@ -326,7 +395,17 @@ void command_gps(uint8_t system_id, uint8_t component_id, uint32_t upTime,  uint
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
   
     // Send the message (.write sends as bytes)
-    Serial.write(buf, len);
+    #ifdef ESP8266
+    
+        outPort.beginPacket(UDP_broadcast, remoteport);
+        outPort.write(buf, len);
+        outPort.endPacket();
+
+    #else
+    
+        outPort.write(buf, len);
+
+    #endif
 }
 
 
@@ -354,7 +433,17 @@ void command_attitude(uint8_t system_id, uint8_t component_id, int32_t upTime, i
     // Copy the message to the send buffer
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
     // Send the message (.write sends as bytes)
-    Serial.write(buf, len);
+    #ifdef ESP8266
+    
+        outPort.beginPacket(UDP_broadcast, remoteport);
+        outPort.write(buf, len);
+        outPort.endPacket();
+
+    #else
+    
+        outPort.write(buf, len);
+
+    #endif
 }
 
 
@@ -376,7 +465,17 @@ void command_vfr_hud(uint8_t system_id, uint8_t component_id, float groundspeed,
     // Copy the message to the send buffer
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
     // Send the message (.write sends as bytes)
-    Serial.write(buf, len);
+    #ifdef ESP8266
+    
+        outPort.beginPacket(UDP_broadcast, remoteport);
+        outPort.write(buf, len);
+        outPort.endPacket();
+
+    #else
+    
+        outPort.write(buf, len);
+
+    #endif
 }
 
 
@@ -398,5 +497,15 @@ void command_rc_channels_raw(uint8_t system_id, uint8_t component_id, int32_t up
     // Copy the message to the send buffer
     uint16_t len = mavlink_msg_to_send_buffer(buf, &msg);
     // Send the message (.write sends as bytes)
-    Serial.write(buf, len);
+    #ifdef ESP8266
+    
+        outPort.beginPacket(UDP_broadcast, remoteport);
+        outPort.write(buf, len);
+        outPort.endPacket();
+
+    #else
+    
+        outPort.write(buf, len);
+
+    #endif
 }
