@@ -5,14 +5,16 @@ Aimed at passing LTM downlink telemetry to MAVLink-compatible GCSes like Mission
 
 Tested on Arduino Pro Mini and ESP8266
 
-LTM telemetry input via AltSoftSerial on Pin D8, default 2400 baud
 
 Arduino Pro Mini:
 -----------------
+LTM telemetry input via AltSoftSerial on Pin D8, default 1200 baud
+
 MAVLink output via hardware serial, default 57600 baud
 
 ESP8266: 
 --------
+LTM telemetry input via HardwareSerial, default 1200 baud
 
 MAVLink via UDP broadcast, SSID = LTM2MAVLinkUDP, password = password
 
